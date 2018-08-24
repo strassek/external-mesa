@@ -69,6 +69,8 @@ isl_is_storage_image_format(enum isl_format format)
    case ISL_FORMAT_R16_SNORM:
    case ISL_FORMAT_R8_UNORM:
    case ISL_FORMAT_R8_SNORM:
+   case ISL_FORMAT_R8G8B8A8_UNORM_SRGB:
+   case ISL_FORMAT_B5G6R5_UNORM:
       return true;
    default:
       return false;
