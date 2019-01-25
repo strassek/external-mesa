@@ -64,6 +64,20 @@ static const struct dri2_wl_visual {
    bool is_float;
 } dri2_wl_visuals[] = {
    {
+     "XBGR16161616F",
+     WL_DRM_FORMAT_XBGR16161616F, WL_SHM_FORMAT_XBGR16161616F,
+     __DRI_IMAGE_FORMAT_XBGR16161616F, 64,
+     { 0, 16, 32, -1 },
+     true
+   },
+   {
+     "ABGR16161616F",
+     WL_DRM_FORMAT_ABGR16161616F, WL_SHM_FORMAT_ABGR16161616F,
+     __DRI_IMAGE_FORMAT_ABGR16161616F, 64,
+     { 0, 16, 32, 48 },
+     true
+   },
+   {
      "XRGB2101010",
      WL_DRM_FORMAT_XRGB2101010, WL_SHM_FORMAT_XRGB2101010,
      __DRI_IMAGE_FORMAT_XRGB2101010, 32,
@@ -755,12 +769,26 @@ dri2_wl_flush_front_buffer(__DRIdrawable * driDrawable, void *loaderPrivate)
    (void) loaderPrivate;
 }
 
+static unsigned
+dri2_wl_get_capability(void *loaderPrivate, enum dri_loader_cap cap)
+{
+   /* Note: loaderPrivate is _EGLDisplay* */
+   switch (cap) {
+   case DRI_LOADER_CAP_RGBA_ORDERING:
+   case DRI_LOADER_CAP_FP16:
+      return 1;
+   default:
+      return 0;
+   }
+}
+
 static const __DRIdri2LoaderExtension dri2_loader_extension = {
-   .base = { __DRI_DRI2_LOADER, 3 },
+   .base = { __DRI_DRI2_LOADER, 4 },
 
    .getBuffers           = dri2_wl_get_buffers,
    .flushFrontBuffer     = dri2_wl_flush_front_buffer,
    .getBuffersWithFormat = dri2_wl_get_buffers_with_format,
+   .getCapability        = dri2_wl_get_capability,
 };
 
 static const __DRIimageLoaderExtension image_loader_extension = {

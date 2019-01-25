@@ -80,6 +80,8 @@
       <entry name="abgr2101010" value="0x30334241"/>
       <entry name="rgba1010102" value="0x30334152"/>
       <entry name="bgra1010102" value="0x30334142"/>
+      <entry name="xbgr16161616f" value="0x48344258" />
+      <entry name="abgr16161616f" value="0x48344241" />
       <entry name="yuyv" value="0x56595559"/>
       <entry name="yvyu" value="0x55595659"/>
       <entry name="uyvy" value="0x59565955"/>

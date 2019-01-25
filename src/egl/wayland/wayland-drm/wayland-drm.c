@@ -117,6 +117,8 @@ drm_create_buffer(struct wl_client *client, struct wl_resource *resource,
         case WL_DRM_FORMAT_XRGB8888:
         case WL_DRM_FORMAT_YUYV:
         case WL_DRM_FORMAT_RGB565:
+        case WL_DRM_FORMAT_ABGR16161616F:
+        case WL_DRM_FORMAT_XBGR16161616F:
                 break;
         default:
                 wl_resource_post_error(resource,
@@ -220,6 +222,10 @@ bind_drm(struct wl_client *client, void *data, uint32_t version, uint32_t id)
 			       WL_DRM_FORMAT_XRGB8888);
         wl_resource_post_event(resource, WL_DRM_FORMAT,
                                WL_DRM_FORMAT_RGB565);
+        wl_resource_post_event(resource, WL_DRM_FORMAT,
+                               WL_DRM_FORMAT_ABGR16161616F);
+        wl_resource_post_event(resource, WL_DRM_FORMAT,
+                               WL_DRM_FORMAT_XBGR16161616F);
         wl_resource_post_event(resource, WL_DRM_FORMAT, WL_DRM_FORMAT_YUV410);
         wl_resource_post_event(resource, WL_DRM_FORMAT, WL_DRM_FORMAT_YUV411);
         wl_resource_post_event(resource, WL_DRM_FORMAT, WL_DRM_FORMAT_YUV420);
