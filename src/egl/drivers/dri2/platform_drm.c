@@ -97,6 +97,8 @@ dri2_drm_config_is_compatible(struct dri2_egl_display *dri2_dpy,
 {
    const struct gbm_dri_visual *visual = NULL;
    int red, green, blue, alpha;
+   unsigned int render_type;
+   bool is_float;
    int i;
 
    /* Check that the EGLConfig being used to render to the surface is
@@ -108,6 +110,10 @@ dri2_drm_config_is_compatible(struct dri2_egl_display *dri2_dpy,
    dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_GREEN_SHIFT, &green);
    dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_BLUE_SHIFT, &blue);
    dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_ALPHA_SHIFT, &alpha);
+
+   dri2_dpy->core->getConfigAttrib(config, __DRI_ATTRIB_RENDER_TYPE,
+                                   &render_type);
+   is_float = (render_type & __DRI_ATTRIB_FLOAT_BIT) ? true : false;
 
    for (i = 0; i < dri2_dpy->gbm_dri->num_visuals; i++) {
       visual = &dri2_dpy->gbm_dri->visual_table[i];
@@ -121,7 +127,8 @@ dri2_drm_config_is_compatible(struct dri2_egl_display *dri2_dpy,
    if (red != visual->rgba_shifts.red ||
        green != visual->rgba_shifts.green ||
        blue != visual->rgba_shifts.blue ||
-       (alpha > -1 && alpha != visual->rgba_shifts.alpha)) {
+       (alpha > -1 && alpha != visual->rgba_shifts.alpha) ||
+       is_float != visual->is_float) {
       return false;
    }
 
@@ -629,11 +636,17 @@ drm_add_configs_for_visuals(_EGLDriver *drv, _EGLDisplay *disp)
    for (unsigned i = 0; dri2_dpy->driver_configs[i]; i++) {
       const __DRIconfig *config = dri2_dpy->driver_configs[i];
       int red, green, blue, alpha;
+      unsigned int render_type;
+      bool is_float;
 
       dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_RED_SHIFT, &red);
       dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_GREEN_SHIFT, &green);
       dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_BLUE_SHIFT, &blue);
       dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_ALPHA_SHIFT, &alpha);
+
+      dri2_dpy->core->getConfigAttrib(dri2_dpy->driver_configs[i],
+                                      __DRI_ATTRIB_RENDER_TYPE, &render_type);
+      is_float = (render_type & __DRI_ATTRIB_FLOAT_BIT) ? true : false;
 
       for (unsigned j = 0; j < num_visuals; j++) {
          struct dri2_egl_config *dri2_conf;
@@ -641,7 +654,8 @@ drm_add_configs_for_visuals(_EGLDriver *drv, _EGLDisplay *disp)
          if (visuals[j].rgba_shifts.red != red ||
              visuals[j].rgba_shifts.green != green ||
              visuals[j].rgba_shifts.blue != blue ||
-             visuals[j].rgba_shifts.alpha != alpha)
+             visuals[j].rgba_shifts.alpha != alpha ||
+             visuals[j].is_float != is_float)
             continue;
 
          const EGLint attr_list[] = {
