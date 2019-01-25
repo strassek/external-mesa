@@ -417,6 +417,9 @@ st_new_renderbuffer_fb(enum pipe_format format, unsigned samples, boolean sw)
    case PIPE_FORMAT_R16G16B16A16_FLOAT:
       strb->Base.InternalFormat = GL_RGBA16F;
       break;
+   case PIPE_FORMAT_R16G16B16X16_FLOAT:
+      strb->Base.InternalFormat = GL_RGB16F;
+      break;
    default:
       _mesa_problem(NULL,
                     "Unexpected format %s in st_new_renderbuffer_fb",

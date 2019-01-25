@@ -142,6 +142,10 @@ dri_fill_in_modes(struct dri_screen *screen)
 
       /* Required by Android, for HAL_PIXEL_FORMAT_RGBX_8888. */
       MESA_FORMAT_R8G8B8X8_UNORM,
+
+      /* Required by Android, for HAL_PIXEL_FORMAT_RGBA_FP16. */
+      MESA_FORMAT_RGBA_FLOAT16,
+      MESA_FORMAT_RGBX_FLOAT16,
    };
    static const enum pipe_format pipe_formats[] = {
       PIPE_FORMAT_B10G10R10A2_UNORM,
@@ -155,6 +159,8 @@ dri_fill_in_modes(struct dri_screen *screen)
       PIPE_FORMAT_B5G6R5_UNORM,
       PIPE_FORMAT_RGBA8888_UNORM,
       PIPE_FORMAT_RGBX8888_UNORM,
+      PIPE_FORMAT_R16G16B16A16_FLOAT,
+      PIPE_FORMAT_R16G16B16X16_FLOAT,
    };
    mesa_format format;
    __DRIconfig **configs = NULL;
@@ -167,6 +173,7 @@ dri_fill_in_modes(struct dri_screen *screen)
    boolean pf_z16, pf_x8z24, pf_z24x8, pf_s8z24, pf_z24s8, pf_z32;
    boolean mixed_color_depth;
    boolean allow_rgb10;
+   boolean allow_fp16;
 
    static const GLenum back_buffer_modes[] = {
       __DRI_ATTRIB_SWAP_NONE, __DRI_ATTRIB_SWAP_UNDEFINED,
@@ -184,6 +191,8 @@ dri_fill_in_modes(struct dri_screen *screen)
    }
 
    allow_rgb10 = driQueryOptionb(&screen->dev->option_cache, "allow_rgb10_configs");
+   allow_fp16 = driQueryOptionb(&screen->dev->option_cache, "allow_fp16_configs");
+   allow_fp16 &= dri_loader_get_cap(screen, DRI_LOADER_CAP_FP16);
 
    msaa_samples_max = (screen->st_api->feature_mask & ST_API_FEATURE_MS_VISUALS_MASK)
       ? MSAA_VISUAL_MAX_SAMPLES : 1;
@@ -236,7 +245,7 @@ dri_fill_in_modes(struct dri_screen *screen)
    if (dri_loader_get_cap(screen, DRI_LOADER_CAP_RGBA_ORDERING))
       num_formats = ARRAY_SIZE(mesa_formats);
    else
-      num_formats = ARRAY_SIZE(mesa_formats) - 2; /* all - RGBA_ORDERING formats */
+      num_formats = ARRAY_SIZE(mesa_formats) - 4; /* all - RGBA_ORDERING formats */
 
    /* Add configs. */
    for (format = 0; format < num_formats; format++) {
@@ -249,6 +258,11 @@ dri_fill_in_modes(struct dri_screen *screen)
            mesa_formats[format] == MESA_FORMAT_B10G10R10X2_UNORM ||
            mesa_formats[format] == MESA_FORMAT_R10G10B10A2_UNORM ||
            mesa_formats[format] == MESA_FORMAT_R10G10B10X2_UNORM))
+         continue;
+
+      if (!allow_fp16 &&
+          (mesa_formats[format] == MESA_FORMAT_RGBA_FLOAT16 ||
+           mesa_formats[format] == MESA_FORMAT_RGBX_FLOAT16))
          continue;
 
       if (!p_screen->is_format_supported(p_screen, pipe_formats[format],
@@ -315,6 +329,17 @@ dri_fill_st_visual(struct st_visual *stvis,
 
    /* Deduce the color format. */
    switch (mode->redMask) {
+   case 0:
+      /* Formats > 32 bpp */
+      assert(mode->floatMode);
+      if (mode->alphaShift > -1) {
+         assert(mode->alphaShift == 48);
+         stvis->color_format = PIPE_FORMAT_R16G16B16A16_FLOAT;
+      } else {
+         stvis->color_format = PIPE_FORMAT_R16G16B16X16_FLOAT;
+      }
+      break;
+
    case 0x3FF00000:
       if (mode->alphaMask) {
          assert(mode->alphaMask == 0xC0000000);
