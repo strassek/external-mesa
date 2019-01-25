@@ -96,7 +96,7 @@ dri2_drm_config_is_compatible(struct dri2_egl_display *dri2_dpy,
                               struct gbm_surface *surface)
 {
    const struct gbm_dri_visual *visual = NULL;
-   unsigned int red, green, blue, alpha;
+   int red, green, blue, alpha;
    int i;
 
    /* Check that the EGLConfig being used to render to the surface is
@@ -104,10 +104,10 @@ dri2_drm_config_is_compatible(struct dri2_egl_display *dri2_dpy,
     * otherwise-compatible formats is relatively common, explicitly allow
     * this.
     */
-   dri2_dpy->core->getConfigAttrib(config, __DRI_ATTRIB_RED_MASK, &red);
-   dri2_dpy->core->getConfigAttrib(config, __DRI_ATTRIB_GREEN_MASK, &green);
-   dri2_dpy->core->getConfigAttrib(config, __DRI_ATTRIB_BLUE_MASK, &blue);
-   dri2_dpy->core->getConfigAttrib(config, __DRI_ATTRIB_ALPHA_MASK, &alpha);
+   dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_RED_SHIFT, &red);
+   dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_GREEN_SHIFT, &green);
+   dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_BLUE_SHIFT, &blue);
+   dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_ALPHA_SHIFT, &alpha);
 
    for (i = 0; i < dri2_dpy->gbm_dri->num_visuals; i++) {
       visual = &dri2_dpy->gbm_dri->visual_table[i];
@@ -118,10 +118,10 @@ dri2_drm_config_is_compatible(struct dri2_egl_display *dri2_dpy,
    if (i == dri2_dpy->gbm_dri->num_visuals)
       return false;
 
-   if (red != visual->rgba_masks.red ||
-       green != visual->rgba_masks.green ||
-       blue != visual->rgba_masks.blue ||
-       (alpha && visual->rgba_masks.alpha && alpha != visual->rgba_masks.alpha)) {
+   if (red != visual->rgba_shifts.red ||
+       green != visual->rgba_shifts.green ||
+       blue != visual->rgba_shifts.blue ||
+       (alpha > -1 && alpha != visual->rgba_shifts.alpha)) {
       return false;
    }
 
@@ -627,24 +627,21 @@ drm_add_configs_for_visuals(_EGLDriver *drv, _EGLDisplay *disp)
    memset(format_count, 0, num_visuals * sizeof(unsigned int));
 
    for (unsigned i = 0; dri2_dpy->driver_configs[i]; i++) {
-      unsigned int red, green, blue, alpha;
+      const __DRIconfig *config = dri2_dpy->driver_configs[i];
+      int red, green, blue, alpha;
 
-      dri2_dpy->core->getConfigAttrib(dri2_dpy->driver_configs[i],
-                                      __DRI_ATTRIB_RED_MASK, &red);
-      dri2_dpy->core->getConfigAttrib(dri2_dpy->driver_configs[i],
-                                      __DRI_ATTRIB_GREEN_MASK, &green);
-      dri2_dpy->core->getConfigAttrib(dri2_dpy->driver_configs[i],
-                                      __DRI_ATTRIB_BLUE_MASK, &blue);
-      dri2_dpy->core->getConfigAttrib(dri2_dpy->driver_configs[i],
-                                      __DRI_ATTRIB_ALPHA_MASK, &alpha);
+      dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_RED_SHIFT, &red);
+      dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_GREEN_SHIFT, &green);
+      dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_BLUE_SHIFT, &blue);
+      dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_ALPHA_SHIFT, &alpha);
 
       for (unsigned j = 0; j < num_visuals; j++) {
          struct dri2_egl_config *dri2_conf;
 
-         if (visuals[j].rgba_masks.red != red ||
-             visuals[j].rgba_masks.green != green ||
-             visuals[j].rgba_masks.blue != blue ||
-             visuals[j].rgba_masks.alpha != alpha)
+         if (visuals[j].rgba_shifts.red != red ||
+             visuals[j].rgba_shifts.green != green ||
+             visuals[j].rgba_shifts.blue != blue ||
+             visuals[j].rgba_shifts.alpha != alpha)
             continue;
 
          const EGLint attr_list[] = {
