@@ -184,6 +184,12 @@ static const struct __DRI2flushExtensionRec intelFlushExtension = {
 };
 
 static const struct intel_image_format intel_image_formats[] = {
+   { __DRI_IMAGE_FOURCC_ABGR16161616F, __DRI_IMAGE_COMPONENTS_RGBA, 1,
+     { { 0, 0, 0, __DRI_IMAGE_FORMAT_ABGR16161616F, 8 } } },
+
+   { __DRI_IMAGE_FOURCC_XBGR16161616F, __DRI_IMAGE_COMPONENTS_RGB, 1,
+     { { 0, 0, 0, __DRI_IMAGE_FORMAT_XBGR16161616F, 8 } } },
+
    { __DRI_IMAGE_FOURCC_ARGB2101010, __DRI_IMAGE_COMPONENTS_RGBA, 1,
      { { 0, 0, 0, __DRI_IMAGE_FORMAT_ARGB2101010, 4 } } },
 
@@ -1713,7 +1719,11 @@ intelCreateBuffer(__DRIscreen *dri_screen,
       fb->Visual.samples = num_samples;
    }
 
-   if (mesaVis->redBits == 10 && mesaVis->alphaBits > 0) {
+   if (mesaVis->redBits == 16 && mesaVis->alphaBits > 0 && mesaVis->floatMode) {
+      rgbFormat = MESA_FORMAT_RGBA_FLOAT16;
+   } else if (mesaVis->redBits == 16 && mesaVis->floatMode) {
+      rgbFormat = MESA_FORMAT_RGBX_FLOAT16;
+   } else if (mesaVis->redBits == 10 && mesaVis->alphaBits > 0) {
       rgbFormat = mesaVis->redMask == 0x3ff00000 ? MESA_FORMAT_B10G10R10A2_UNORM
                                                  : MESA_FORMAT_R10G10B10A2_UNORM;
    } else if (mesaVis->redBits == 10) {
@@ -2149,6 +2159,10 @@ intel_screen_make_configs(__DRIscreen *dri_screen)
       MESA_FORMAT_R8G8B8X8_UNORM,
 
       MESA_FORMAT_R8G8B8A8_SRGB,
+
+      /* Required by Android, for HAL_PIXEL_FORMAT_RGBA_FP16. */
+      MESA_FORMAT_RGBA_FLOAT16,
+      MESA_FORMAT_RGBX_FLOAT16,
    };
 
    /* __DRI_ATTRIB_SWAP_COPY is not supported due to page flipping. */
@@ -2168,11 +2182,14 @@ intel_screen_make_configs(__DRIscreen *dri_screen)
    if (intel_loader_get_cap(dri_screen, DRI_LOADER_CAP_RGBA_ORDERING))
       num_formats = ARRAY_SIZE(formats);
    else
-      num_formats = ARRAY_SIZE(formats) - 3; /* all - RGBA_ORDERING formats */
+      num_formats = ARRAY_SIZE(formats) - 5; /* all - RGBA_ORDERING formats */
 
-   /* Shall we expose 10 bpc formats? */
+   /* Shall we expose 10/16 bpc formats? */
    bool allow_rgb10_configs = driQueryOptionb(&screen->optionCache,
                                               "allow_rgb10_configs");
+   bool allow_fp16_configs = driQueryOptionb(&screen->optionCache,
+                                             "allow_fp16_configs");
+   allow_fp16_configs &= intel_loader_get_cap(dri_screen, DRI_LOADER_CAP_FP16);
 
    /* Generate singlesample configs, each without accumulation buffer
     * and with EGL_MUTABLE_RENDER_BUFFER_BIT_KHR.
@@ -2184,6 +2201,11 @@ intel_screen_make_configs(__DRIscreen *dri_screen)
       if (!allow_rgb10_configs &&
           (formats[i] == MESA_FORMAT_B10G10R10A2_UNORM ||
            formats[i] == MESA_FORMAT_B10G10R10X2_UNORM))
+         continue;
+
+      if (!allow_fp16_configs &&
+          (formats[i] == MESA_FORMAT_RGBA_FLOAT16 ||
+           formats[i] == MESA_FORMAT_RGBX_FLOAT16))
          continue;
 
       /* Starting with DRI2 protocol version 1.1 we can request a depth/stencil
@@ -2228,6 +2250,11 @@ intel_screen_make_configs(__DRIscreen *dri_screen)
           formats[i] == MESA_FORMAT_B10G10R10X2_UNORM))
          continue;
 
+      if (!allow_fp16_configs &&
+          (formats[i] == MESA_FORMAT_RGBA_FLOAT16 ||
+           formats[i] == MESA_FORMAT_RGBX_FLOAT16))
+         continue;
+
       if (formats[i] == MESA_FORMAT_B5G6R5_UNORM) {
          depth_bits[0] = 16;
          stencil_bits[0] = 0;
@@ -2264,6 +2291,11 @@ intel_screen_make_configs(__DRIscreen *dri_screen)
       if (!allow_rgb10_configs &&
           (formats[i] == MESA_FORMAT_B10G10R10A2_UNORM ||
           formats[i] == MESA_FORMAT_B10G10R10X2_UNORM))
+         continue;
+
+      if (!allow_fp16_configs &&
+          (formats[i] == MESA_FORMAT_RGBA_FLOAT16 ||
+           formats[i] == MESA_FORMAT_RGBX_FLOAT16))
          continue;
 
       __DRIconfig **new_configs;
