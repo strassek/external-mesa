@@ -223,6 +223,10 @@ driCreateConfigs(mesa_format format,
       { 0, 10, 20, -1 },
       /* MESA_FORMAT_R10G10B10A2_UNORM */
       { 0, 10, 20, 30 },
+      /* MESA_FORMAT_RGBX_FLOAT16 */
+      { 0, 16, 32, -1 },
+      /* MESA_FORMAT_RGBA_FLOAT16 */
+      { 0, 16, 32, 48 },
    };
 
    const uint32_t * masks;
@@ -270,6 +274,14 @@ driCreateConfigs(mesa_format format,
    case MESA_FORMAT_B10G10R10A2_UNORM:
       masks = masks_table[4];
       shifts = shifts_table[4];
+      break;
+   case MESA_FORMAT_RGBX_FLOAT16:
+      masks = masks_table[9];
+      shifts = shifts_table[9];
+      break;
+   case MESA_FORMAT_RGBA_FLOAT16:
+      masks = masks_table[9];
+      shifts = shifts_table[10];
       break;
    case MESA_FORMAT_R10G10B10X2_UNORM:
       masks = masks_table[7];
