@@ -61,48 +61,56 @@ static const struct dri2_wl_visual {
    int dri_image_format;
    int bpp;
    int rgba_shifts[4];
+   bool is_float;
 } dri2_wl_visuals[] = {
    {
      "XRGB2101010",
      WL_DRM_FORMAT_XRGB2101010, WL_SHM_FORMAT_XRGB2101010,
      __DRI_IMAGE_FORMAT_XRGB2101010, 32,
      { 20, 10, 0, -1 },
+     false
    },
    {
      "ARGB2101010",
      WL_DRM_FORMAT_ARGB2101010, WL_SHM_FORMAT_ARGB2101010,
      __DRI_IMAGE_FORMAT_ARGB2101010, 32,
      { 20, 10, 0, 30 },
+     false
    },
    {
      "XBGR2101010",
      WL_DRM_FORMAT_XBGR2101010, WL_SHM_FORMAT_XBGR2101010,
      __DRI_IMAGE_FORMAT_XBGR2101010, 32,
      { 0, 10, 20, -1 },
+     false
    },
    {
      "ABGR2101010",
      WL_DRM_FORMAT_ABGR2101010, WL_SHM_FORMAT_ABGR2101010,
      __DRI_IMAGE_FORMAT_ABGR2101010, 32,
      { 0, 10, 20, 30 },
+     false
    },
    {
      "XRGB8888",
      WL_DRM_FORMAT_XRGB8888, WL_SHM_FORMAT_XRGB8888,
      __DRI_IMAGE_FORMAT_XRGB8888, 32,
      { 16, 8, 0, -1 },
+     false
    },
    {
      "ARGB8888",
      WL_DRM_FORMAT_ARGB8888, WL_SHM_FORMAT_ARGB8888,
      __DRI_IMAGE_FORMAT_ARGB8888, 32,
      { 16, 8, 0, 24 },
+     false
    },
    {
      "RGB565",
      WL_DRM_FORMAT_RGB565, WL_SHM_FORMAT_RGB565,
      __DRI_IMAGE_FORMAT_RGB565, 16,
      { 11, 5, 0, -1 },
+     false
    },
 };
 
@@ -111,6 +119,8 @@ dri2_wl_visual_idx_from_config(struct dri2_egl_display *dri2_dpy,
                                const __DRIconfig *config)
 {
    int red, green, blue, alpha;
+   unsigned int render_type;
+   bool is_float;
 
    dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_RED_SHIFT,
                        &red);
@@ -121,6 +131,9 @@ dri2_wl_visual_idx_from_config(struct dri2_egl_display *dri2_dpy,
    dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_ALPHA_SHIFT,
                        &alpha);
 
+   dri2_dpy->core->getConfigAttrib(config, __DRI_ATTRIB_RENDER_TYPE,
+                                   &render_type);
+   is_float = (render_type & __DRI_ATTRIB_FLOAT_BIT) ? true : false;
 
    for (unsigned int i = 0; i < ARRAY_SIZE(dri2_wl_visuals); i++) {
       const struct dri2_wl_visual *wl_visual = &dri2_wl_visuals[i];
@@ -128,7 +141,8 @@ dri2_wl_visual_idx_from_config(struct dri2_egl_display *dri2_dpy,
       if (red == wl_visual->rgba_shifts[0] &&
           green == wl_visual->rgba_shifts[1] &&
           blue == wl_visual->rgba_shifts[2] &&
-          alpha == wl_visual->rgba_shifts[3]) {
+          alpha == wl_visual->rgba_shifts[3] &&
+          is_float == wl_visual->is_float) {
          return i;
       }
    }

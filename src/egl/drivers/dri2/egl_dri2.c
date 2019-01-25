@@ -236,6 +236,9 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
 
       switch (attrib) {
       case __DRI_ATTRIB_RENDER_TYPE:
+         if (value & __DRI_ATTRIB_FLOAT_BIT)
+            _eglSetConfigKey(&base, EGL_COLOR_COMPONENT_TYPE_EXT,
+                             EGL_COLOR_COMPONENT_TYPE_FLOAT_EXT);
          if (value & __DRI_ATTRIB_RGBA_BIT)
             value = EGL_RGB_BUFFER;
          else if (value & __DRI_ATTRIB_LUMINANCE_BIT)

@@ -49,6 +49,7 @@ struct gbm_dri_visual {
       int blue;
       int alpha;
    } rgba_shifts;
+   bool is_float;
 };
 
 struct gbm_dri_device {

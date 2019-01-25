@@ -487,50 +487,62 @@ static const struct gbm_dri_visual gbm_dri_visuals_table[] = {
    {
      GBM_FORMAT_R8, __DRI_IMAGE_FORMAT_R8,
      { 0, -1, -1, -1 },
+     false,
    },
    {
      GBM_FORMAT_GR88, __DRI_IMAGE_FORMAT_GR88,
      { 0, 8, -1, -1 },
+     false,
    },
    {
      GBM_FORMAT_ARGB1555, __DRI_IMAGE_FORMAT_ARGB1555,
      { 10, 5, 0, 11 },
+     false,
    },
    {
      GBM_FORMAT_RGB565, __DRI_IMAGE_FORMAT_RGB565,
      { 11, 5, 0, -1 },
+     false,
    },
    {
      GBM_FORMAT_XRGB8888, __DRI_IMAGE_FORMAT_XRGB8888,
      { 16, 8, 0, -1 },
+     false,
    },
    {
      GBM_FORMAT_ARGB8888, __DRI_IMAGE_FORMAT_ARGB8888,
      { 16, 8, 0, 24 },
+     false,
    },
    {
      GBM_FORMAT_XBGR8888, __DRI_IMAGE_FORMAT_XBGR8888,
      { 0, 8, 16, -1 },
+     false,
    },
    {
      GBM_FORMAT_ABGR8888, __DRI_IMAGE_FORMAT_ABGR8888,
      { 0, 8, 16, 24 },
+     false,
    },
    {
      GBM_FORMAT_XRGB2101010, __DRI_IMAGE_FORMAT_XRGB2101010,
      { 20, 10, 0, -1 },
+     false,
    },
    {
      GBM_FORMAT_ARGB2101010, __DRI_IMAGE_FORMAT_ARGB2101010,
      { 20, 10, 0, 30 },
+     false,
    },
    {
      GBM_FORMAT_XBGR2101010, __DRI_IMAGE_FORMAT_XBGR2101010,
      { 0, 10, 20, -1 },
+     false,
    },
    {
      GBM_FORMAT_ABGR2101010, __DRI_IMAGE_FORMAT_ABGR2101010,
      { 0, 10, 20, 30 },
+     false,
    },
 };
 
