@@ -60,49 +60,49 @@ static const struct dri2_wl_visual {
    uint32_t wl_shm_format;
    int dri_image_format;
    int bpp;
-   unsigned int rgba_masks[4];
+   int rgba_shifts[4];
 } dri2_wl_visuals[] = {
    {
      "XRGB2101010",
      WL_DRM_FORMAT_XRGB2101010, WL_SHM_FORMAT_XRGB2101010,
      __DRI_IMAGE_FORMAT_XRGB2101010, 32,
-     { 0x3ff00000, 0x000ffc00, 0x000003ff, 0x00000000 }
+     { 20, 10, 0, -1 },
    },
    {
      "ARGB2101010",
      WL_DRM_FORMAT_ARGB2101010, WL_SHM_FORMAT_ARGB2101010,
      __DRI_IMAGE_FORMAT_ARGB2101010, 32,
-     { 0x3ff00000, 0x000ffc00, 0x000003ff, 0xc0000000 }
+     { 20, 10, 0, 30 },
    },
    {
      "XBGR2101010",
      WL_DRM_FORMAT_XBGR2101010, WL_SHM_FORMAT_XBGR2101010,
      __DRI_IMAGE_FORMAT_XBGR2101010, 32,
-     { 0x000003ff, 0x000ffc00, 0x3ff00000, 0x00000000 }
+     { 0, 10, 20, -1 },
    },
    {
      "ABGR2101010",
      WL_DRM_FORMAT_ABGR2101010, WL_SHM_FORMAT_ABGR2101010,
      __DRI_IMAGE_FORMAT_ABGR2101010, 32,
-     { 0x000003ff, 0x000ffc00, 0x3ff00000, 0xc0000000 }
+     { 0, 10, 20, 30 },
    },
    {
      "XRGB8888",
      WL_DRM_FORMAT_XRGB8888, WL_SHM_FORMAT_XRGB8888,
      __DRI_IMAGE_FORMAT_XRGB8888, 32,
-     { 0x00ff0000, 0x0000ff00, 0x000000ff, 0x00000000 }
+     { 16, 8, 0, -1 },
    },
    {
      "ARGB8888",
      WL_DRM_FORMAT_ARGB8888, WL_SHM_FORMAT_ARGB8888,
      __DRI_IMAGE_FORMAT_ARGB8888, 32,
-     { 0x00ff0000, 0x0000ff00, 0x000000ff, 0xff000000 }
+     { 16, 8, 0, 24 },
    },
    {
      "RGB565",
      WL_DRM_FORMAT_RGB565, WL_SHM_FORMAT_RGB565,
      __DRI_IMAGE_FORMAT_RGB565, 16,
-     { 0xf800, 0x07e0, 0x001f, 0x0000 }
+     { 11, 5, 0, -1 },
    },
 };
 
@@ -110,20 +110,25 @@ static int
 dri2_wl_visual_idx_from_config(struct dri2_egl_display *dri2_dpy,
                                const __DRIconfig *config)
 {
-   unsigned int red, green, blue, alpha;
+   int red, green, blue, alpha;
 
-   dri2_dpy->core->getConfigAttrib(config, __DRI_ATTRIB_RED_MASK, &red);
-   dri2_dpy->core->getConfigAttrib(config, __DRI_ATTRIB_GREEN_MASK, &green);
-   dri2_dpy->core->getConfigAttrib(config, __DRI_ATTRIB_BLUE_MASK, &blue);
-   dri2_dpy->core->getConfigAttrib(config, __DRI_ATTRIB_ALPHA_MASK, &alpha);
+   dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_RED_SHIFT,
+                       &red);
+   dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_GREEN_SHIFT,
+                       &green);
+   dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_BLUE_SHIFT,
+                       &blue);
+   dri2_get_rgba_shift(dri2_dpy->core, config, __DRI_ATTRIB_ALPHA_SHIFT,
+                       &alpha);
+
 
    for (unsigned int i = 0; i < ARRAY_SIZE(dri2_wl_visuals); i++) {
       const struct dri2_wl_visual *wl_visual = &dri2_wl_visuals[i];
 
-      if (red == wl_visual->rgba_masks[0] &&
-          green == wl_visual->rgba_masks[1] &&
-          blue == wl_visual->rgba_masks[2] &&
-          alpha == wl_visual->rgba_masks[3]) {
+      if (red == wl_visual->rgba_shifts[0] &&
+          green == wl_visual->rgba_shifts[1] &&
+          blue == wl_visual->rgba_shifts[2] &&
+          alpha == wl_visual->rgba_shifts[3]) {
          return i;
       }
    }
@@ -1307,7 +1312,7 @@ dri2_wl_add_configs_for_visuals(_EGLDriver *drv, _EGLDisplay *disp)
             continue;
 
          dri2_conf = dri2_add_config(disp, dri2_dpy->driver_configs[i],
-               count + 1, EGL_WINDOW_BIT, NULL, dri2_wl_visuals[j].rgba_masks);
+               count + 1, EGL_WINDOW_BIT, NULL, dri2_wl_visuals[j].rgba_shifts);
          if (dri2_conf) {
             if (dri2_conf->base.ConfigID == count + 1)
                count++;

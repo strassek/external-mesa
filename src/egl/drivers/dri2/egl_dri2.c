@@ -177,10 +177,41 @@ dri2_match_config(const _EGLConfig *conf, const _EGLConfig *criteria)
    return EGL_TRUE;
 }
 
+void
+dri2_get_rgba_shift(const __DRIcoreExtension *core,
+                    const __DRIconfig *config,
+                    unsigned int shift_attr,
+                    int *shift)
+{
+   unsigned int mask, mask_attr;
+
+   switch (shift_attr) {
+   case __DRI_ATTRIB_RED_SHIFT:
+      mask_attr = __DRI_ATTRIB_RED_MASK;
+      break;
+   case __DRI_ATTRIB_GREEN_SHIFT:
+      mask_attr = __DRI_ATTRIB_GREEN_MASK;
+      break;
+   case __DRI_ATTRIB_BLUE_SHIFT:
+      mask_attr = __DRI_ATTRIB_BLUE_MASK;
+      break;
+   case __DRI_ATTRIB_ALPHA_SHIFT:
+      mask_attr = __DRI_ATTRIB_ALPHA_MASK;
+      break;
+   default:
+      assert(!"unknown shift attr");
+   }
+
+   if (!core->getConfigAttrib(config, shift_attr, (unsigned int *)shift)) {
+      core->getConfigAttrib(config, mask_attr, &mask);
+      *shift = ffs(mask) - 1;
+   }
+}
+
 struct dri2_egl_config *
 dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
                 EGLint surface_type, const EGLint *attr_list,
-                const unsigned int *rgba_masks)
+                const int *rgba_shifts)
 {
    struct dri2_egl_config *conf;
    struct dri2_egl_display *dri2_dpy = dri2_egl_display(disp);
@@ -188,7 +219,7 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
    unsigned int attrib, value, double_buffer;
    bool srgb = false;
    EGLint key, bind_to_texture_rgb, bind_to_texture_rgba;
-   unsigned int dri_masks[4] = { 0, 0, 0, 0 };
+   int dri_shifts[4] = { -1, -1, -1, -1 };
    _EGLConfig *matching_config;
    EGLint num_configs = 0;
    EGLint config_id;
@@ -237,19 +268,35 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
          break;
 
       case __DRI_ATTRIB_RED_MASK:
-         dri_masks[0] = value;
+         dri_shifts[0] = ffs(value) - 1;
+         break;
+
+      case __DRI_ATTRIB_RED_SHIFT:
+         dri_shifts[0] = value;
          break;
 
       case __DRI_ATTRIB_GREEN_MASK:
-         dri_masks[1] = value;
+         dri_shifts[1] = ffs(value) - 1;
+         break;
+
+      case __DRI_ATTRIB_GREEN_SHIFT:
+         dri_shifts[1] = value;
          break;
 
       case __DRI_ATTRIB_BLUE_MASK:
-         dri_masks[2] = value;
+         dri_shifts[2] = ffs(value) - 1;
+         break;
+
+      case __DRI_ATTRIB_BLUE_SHIFT:
+         dri_shifts[2] = value;
          break;
 
       case __DRI_ATTRIB_ALPHA_MASK:
-         dri_masks[3] = value;
+         dri_shifts[3] = ffs(value) - 1;
+         break;
+
+      case __DRI_ATTRIB_ALPHA_SHIFT:
+         dri_shifts[3] = value;
          break;
 
       case __DRI_ATTRIB_ACCUM_RED_SIZE:
@@ -291,7 +338,7 @@ dri2_add_config(_EGLDisplay *disp, const __DRIconfig *dri_config, int id,
       for (int i = 0; attr_list[i] != EGL_NONE; i += 2)
          _eglSetConfigKey(&base, attr_list[i], attr_list[i+1]);
 
-   if (rgba_masks && memcmp(rgba_masks, dri_masks, sizeof(dri_masks)))
+   if (rgba_shifts && memcmp(rgba_shifts, dri_shifts, sizeof(dri_shifts)))
       return NULL;
 
    base.NativeRenderable = EGL_TRUE;
